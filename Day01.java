@@ -27,15 +27,6 @@ class Day01 {
         List<Integer> listLeft;
         List<Integer> listRight;
 
-/*
-        for (String line : collect) {
-            String[] pairs = line.split("\\s+");
-            if (pairs.length == 2) {
-                listLeft.add(Integer.parseInt(pairs[0]));
-                listRight.add(Integer.parseInt(pairs[1]));
-            }
-        }
-*/
         try (Stream<String> lines = Files.lines(path)) {
             var lists = lines.map(line -> line.split("\\s+"))
                     .filter(pairs -> pairs.length == 2)
@@ -60,14 +51,21 @@ class Day01 {
                 .mapToObj(i -> Math.abs(listLeft.get(i) - listRight.get(i)))
                 .toList();
 
-        int sumOfDifferences = differences.stream().mapToInt(Integer::intValue).sum();
+        int sumOfDifferences = differences.stream()
+                .mapToInt(Integer::intValue)
+                .sum();
 
         out.println("--- Part One ---");
         out.println("Sum of differences: " + sumOfDifferences);
 
-
+        int sumOfProducts = IntStream
+                .range(0, Math.min(listLeft.size(), listRight.size()))
+                .map(i -> listLeft.get(i) * (int) listRight.stream()
+                        .filter(j -> j.equals(listLeft.get(i)))
+                        .count())
+                .sum();
 
         out.println("--- Part Two ---");
-        out.println("Sum of products: ");
+        out.println("Sum of products: " + sumOfProducts);
     }
 }
