@@ -4,7 +4,6 @@
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -21,49 +20,81 @@ class Day02 {
 
         out.println("--- Day 2: Red-Nosed Reports ---");
 
-
-        List<List<Pair>> reports;
-
+        List<String> inputLines;
         try (Stream<String> lines = Files.lines(Paths.get(args[0]))) {
-            reports = lines
-                    .map(Day02::lineToPairs)
-                    .toList();
+            inputLines = lines.toList();
         }
 
-        long count = reports.stream()
+        out.println("--- Part One ---");
+
+        long countOfStrictlyMonotone = inputLines.stream()
+                .map(Day02::lineToIntegers)
+                .map(Day02::numbersToPairs)
                 .filter(Day02::isStrictlyMonotone)
                 .count();
 
-        out.println("--- Part One ---");
-        out.println("Count of safe reports: " + count);
+        out.println("Count of safe reports: " + countOfStrictlyMonotone);
 
         out.println("--- Part Two ---");
-        out.println("Sum of products: ");
+
+        long countOfPossiblyStrictlyMonotone = inputLines.stream()
+                .map(Day02::lineToIntegers)
+                .map(Day02::leaveOneOutVariants)
+                .map(variants -> variants.stream()
+                        .map(Day02::numbersToPairs)
+                        .toList())
+                .filter(Day02::isPossiblyStrictlyMonotone)
+                .count();
+
+        out.println("Count of safe reports: " + countOfPossiblyStrictlyMonotone);
     }
 
-    private static List<Pair> lineToPairs(String line) {
-        List<Integer> levels = Arrays.stream(line.split("\\s+"))
+    private static List<Integer> lineToIntegers(String line) {
+        return Stream.of(line.split("\\s+"))
                 .map(Integer::parseInt)
                 .toList();
+    }
 
+    private static List<Pair> numbersToPairs(List<Integer> levels) {
         return IntStream.range(0, levels.size() - 1)
-                .mapToObj(i -> new Pair(levels.get(i), levels.get(i + 1))).toList();
+                .mapToObj(i -> new Pair(levels.get(i), levels.get(i + 1)))
+                .toList();
+    }
 
+    private static List<List<Integer>> leaveOneOutVariants(List<Integer> levels) {
+        return IntStream.concat(
+                        IntStream.of(-1),
+                        IntStream.range(0, levels.size()))
+                .mapToObj(i -> {
+                    // Create a sub-sequence excluding the element at index i
+                    return IntStream.range(0, levels.size())
+                            .filter(j -> j != i)
+                            .mapToObj(levels::get)
+                            .toList();
+                })
+                .toList();
     }
 
     private static boolean isStrictlyMonotone(List<Pair> report) {
-        boolean isInitiallyIncreasing = (report.getFirst().first() - report.getFirst().second()) < 0;
+        boolean isInitiallyIncreasing = report.getFirst().first() < report.getFirst().second();
         for (Pair pair : report) {
             int abs = Math.abs(pair.first() - pair.second());
             if (abs < 1 || abs > 3) {
                 return false;
             }
-            if (isInitiallyIncreasing != (pair.first() - pair.second()) < 0) {
+            if (isInitiallyIncreasing != (pair.first() < pair.second())) {
                 return false;
             }
-
         }
         return true;
+    }
+
+    private static boolean isPossiblyStrictlyMonotone(List<List<Pair>> alternatives) {
+        long count = alternatives.stream()
+                .filter(Day02::isStrictlyMonotone)
+                .count();
+
+        return count > 0;
     }
 }
 
