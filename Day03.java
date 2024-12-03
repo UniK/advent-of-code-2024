@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -29,17 +28,8 @@ class Day03 {
 
         out.println("--- Part One ---");
 
-        // Regex pattern to match `mul(<digit>,<digit>)`
+        // Regex pattern to match `mul(<number>,<number>)`
         Pattern pattern = Pattern.compile("mul\\((\\d+),(\\d+)\\)");
-
-        inputLines.forEach(line -> {
-            System.out.printf("Processing line: %s%n", line);
-
-            Matcher matcher = pattern.matcher(line);
-            matcher.results()
-                    .map(MatchResult::group)
-                    .forEach(match -> out.printf("Found match: %s%n", match));
-        });
 
         int totalSum = inputLines.stream()
                 .flatMap(line -> {
@@ -53,11 +43,36 @@ class Day03 {
                 .mapToInt(pair -> pair[0] * pair[1])
                 .sum();
 
-
-        out.println("Sum of multiplications: " + totalSum);
+        out.printf("Sum of multiplications: %d%n", totalSum);
 
         out.println("--- Part Two ---");
 
-        out.println(": ");
+        boolean[] mulEnabled = { true }; // Mutex for enable/disable state
+        int totalSumWithMutex = inputLines.stream()
+                .mapToInt(line -> {
+                    int lineSum = 0;
+
+                    // Create a matcher to find all relevant patterns in sequence
+                    Matcher matcher = Pattern.compile("mul\\((\\d+),(\\d+)\\)|\\bdo\\(\\)|\\bdon't\\(\\)")
+                            .matcher(line);
+
+                    while (matcher.find()) {
+                        if (matcher.group().equals("do()")) {
+                            mulEnabled[0] = true; // Enable `mul`
+                        } else if (matcher.group().equals("don't()")) {
+                            mulEnabled[0] = false; // Disable `mul`
+                        } else if (matcher.group(1) != null && mulEnabled[0]) {
+                            // Process `mul(<number>,<number>)` if enabled
+                            int num1 = Integer.parseInt(matcher.group(1));
+                            int num2 = Integer.parseInt(matcher.group(2));
+                            lineSum += num1 * num2;
+                        }
+                    }
+
+                    return lineSum;
+                })
+                .sum();
+
+        out.printf("Sum of multiplications with mutex: %d%n", totalSumWithMutex);
     }
 }
