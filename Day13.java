@@ -15,8 +15,8 @@ import static java.lang.System.*;
 
 public class Day13 {
 
-    public record Button(String name, int x, int y) {}
-    public record Prize(int x, int y) {}
+    public record Button(String name, long x, long y) {}
+    public record Prize(long x, long y) {}
     public record GameRound(Button buttonA, Button buttonB, Prize prize) {}
 
     public static void main(String... args) throws IOException {
@@ -42,17 +42,16 @@ public class Day13 {
 
         out.println("--- Part One ---");
 
-        int totalTokens = 0;
+        long totalTokens = 0;
 
-        // Process each game round
         for (GameRound round : gameRoundList) {
             out.print("Game round: ");
 
-            int minTokens = calculateMinTokens(round);
-            if (minTokens == Integer.MAX_VALUE) {
-                out.println("No solution found for this round.");
+            long minTokens = calculateMinTokens(round);
+            if (minTokens == Long.MAX_VALUE) {
+                System.out.println("No valid solution for this round.");
             } else {
-                out.println("Minimum tokens for this round: " + minTokens);
+                System.out.println("Minimum tokens for this round: " + minTokens);
                 totalTokens += minTokens;
             }
         }
@@ -115,8 +114,8 @@ public class Day13 {
                     buttonB = new Button(name, x, y);
                 }
             } else if (prizeMatcher.matches()) {
-                int x = Integer.parseInt(prizeMatcher.group(1));
-                int y = Integer.parseInt(prizeMatcher.group(2));
+                long x = Long.parseLong(prizeMatcher.group(1));
+                long y = Long.parseLong(prizeMatcher.group(2));
                 prize = new Prize(x, y);
             }
         }
@@ -129,27 +128,54 @@ public class Day13 {
         return new GameRound(buttonA, buttonB, prize);
     }
 
-    private static int calculateMinTokens(GameRound round) {
+    private static long calculateMinTokens(GameRound round) {
         Button buttonA = round.buttonA();
         Button buttonB = round.buttonB();
         Prize prize = round.prize();
 
-        int minTokens = Integer.MAX_VALUE;
+        long xA = buttonA.x(), yA = buttonA.y();
+        long xB = buttonB.x(), yB = buttonB.y();
+        long xPrize = prize.x(), yPrize = prize.y();
 
-        // Brute-force: iterate over all possible presses for Button A and Button B
-        for (int a = 0; a <= 100; a++) {
-            for (int b = 0; b <= 100; b++) {
-                int totalX = (a * buttonA.x()) + (b * buttonB.x());
-                int totalY = (a * buttonA.y()) + (b * buttonB.y());
+        // Compute GCDs
+        long gcdX = gcd(xA, xB);
+        long gcdY = gcd(yA, yB);
 
-                // Check if this combination matches the prize
-                if (totalX == prize.x() && totalY == prize.y()) {
-                    int cost = (3 * a) + b;
+        // Check if solution exists
+        if (xPrize % gcdX != 0 || yPrize % gcdY != 0) {
+            return Long.MAX_VALUE; // No solution
+        }
+
+        // Reduce problem size
+        xA /= gcdX; xB /= gcdX; xPrize /= gcdX;
+        yA /= gcdY; yB /= gcdY; yPrize /= gcdY;
+
+        long minTokens = Long.MAX_VALUE;
+
+        // Modular arithmetic to jump directly to valid a
+        for (long a = 0; a <= 1000_000_000_000L; a++) { // Adjust as needed
+            long remainingX = xPrize - (a * xA);
+            long remainingY = yPrize - (a * yA);
+
+            if (remainingX >= 0 && remainingY >= 0 && remainingX % xB == 0 && remainingY % yB == 0) {
+                long b = remainingX / xB;
+                if (remainingY == b * yB) {
+                    long cost = (3 * a) + b;
                     minTokens = Math.min(minTokens, cost);
                 }
             }
         }
 
-        return minTokens; // Will be Integer.MAX_VALUE if no solution is found
+        return minTokens;
+    }
+
+    // Helper function to compute GCD
+    private static long gcd(long a, long b) {
+        while (b != 0) {
+            long temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
     }
 }
